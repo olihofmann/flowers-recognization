@@ -1,0 +1,4 @@
+{
+    "Id": "flower-recognition",
+    "Scope": "/subscriptions/6583b89e-b354-4b5b-9906-047be634ef6b/resourceGroups/ML/providers/Microsoft.MachineLearningServices/workspaces/ML-Workspace/experiments/flower-recognition"
+}
