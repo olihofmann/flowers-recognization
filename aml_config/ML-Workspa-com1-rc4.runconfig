@@ -17,7 +17,8 @@
                         "pip": [
                             "azureml-defaults",
                             "zipfile36",
-                            "opencv-python"
+                            "opencv-python-headless",
+                            "pillow"
                         ]
                     }
                 ]

@@ -1,0 +1,14 @@
+.amlignore
+.gitignore
+aml_config
+.git
+.vscode
+.vscodeignore
+.ipynb_checkpoints
+azureml-logs
+.azureml
+outputs
+azureml-setup
+docs
+flowers
+flowers_org

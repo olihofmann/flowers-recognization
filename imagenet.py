@@ -6,8 +6,9 @@ import glob
 import base64
 import keras
 import warnings
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import cv2
+import random as rn
 
 from PIL import Image
 
@@ -26,15 +27,15 @@ from azureml.core.authentication import InteractiveLoginAuthentication
 from zipfile import ZipFile
 
 #%% Download image dataset
-subscription_id = '6583b89e-b354-4b5b-9906-047be634ef6b'
-resource_group = 'ML'
-workspace_name = 'ML-Workspace'
+# subscription_id = '6583b89e-b354-4b5b-9906-047be634ef6b'
+# resource_group = 'ML'
+# workspace_name = 'ML-Workspace'
 
-interactive_auth = InteractiveLoginAuthentication()
-workspace = Workspace(subscription_id, resource_group, workspace_name, auth=interactive_auth)
+# interactive_auth = InteractiveLoginAuthentication()
+# workspace = Workspace(subscription_id, resource_group, workspace_name, auth=interactive_auth)
 
-flowers_ds = Dataset.get_by_name(workspace, name="Flowers")
-flowers_ds.download(target_path=".", overwrite=False)
+# flowers_ds = Dataset.get_by_name(workspace, name="Flowers")
+# flowers_ds.download(target_path=".", overwrite=True)
 
 #%% Extract files
 with ZipFile("flowers.zip", "r") as flowers_zip:
@@ -107,10 +108,49 @@ model = Model(inputs=base_model.input, outputs=predictions)
 for layer in base_model.layers:
     layer.trainable = False 
 
+model.summary()
 #%% Compile the model
 model.compile(Adam(lr=.001), loss="categorical_crossentropy", metrics=["accuracy"])
 
 #%% Train the model
-model.fit(X_train, y_train_encoded, batch_size=32, epochs=50, validation_data=[X_test, y_test_encoded])
+history = model.fit(X_train, y_train_encoded, batch_size=32, epochs=50, validation_data=[X_test, y_test_encoded])
+
+#%% Plot History
+plt.figure(1)
+plt.subplot(211)
+
+plt.plot(history.history["accuracy"])
+plt.plot(history.history["val_accuracy"])
+plt.title("Model Accuracy")
+plt.ylabel("Accuracy")
+plt.xlabel("Epoch")
+plt.show()
+
+#%% Visualize the prediction
+y_prediction = model.predict(X_test)
+figure = plt.figure(figsize=(16, 9))
+labels = images["category"].values
+
+categories = images["category"].values
+
+# fig, ax = plt.subplots(5, 2)
+# fig.set_size_inches(15, 15)
+# for i in range(5):
+#     for j in range(2):
+#         l = rn.randint(0, len(y))
+#         true_label = y_prediction[l]
+#         ax[i, j].imshow(X[l])
+#         ax[i, j].set_title("Flower: " + categories[l])
+#         print(true_label)
+
+# plt.tight_layout()
+
+for i, idx in enumerate(np.random.choice(X_test.shape[0], size=16, replace=False)):
+    ax = figure.add_subplot(4, 4, i + 1, xticks=[], yticks=[])
+    ax.imshow(np.squeeze(X_test[idx]))
+    prediction_idx = np.argmax(y_prediction[idx])
+    true_idx = np.argmax(y_test[idx])
+    ax.set_title("{} ({})".format(labels[prediction_idx], labels[true_idx],
+    color=("green" if prediction_idx == true_idx else "red")))
 
 #%%
