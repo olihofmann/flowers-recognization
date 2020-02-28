@@ -21,6 +21,28 @@ from keras.applications.inception_v3 import InceptionV3
 from keras.applications.inception_v3 import preprocess_input as inception_v3_preprocessor
 from keras.optimizers import Adam
 
+from azureml.core import Dataset, Workspace
+from azureml.core.authentication import InteractiveLoginAuthentication
+from zipfile import ZipFile
+
+#%% Download image dataset
+subscription_id = '6583b89e-b354-4b5b-9906-047be634ef6b'
+resource_group = 'ML'
+workspace_name = 'ML-Workspace'
+
+interactive_auth = InteractiveLoginAuthentication()
+workspace = Workspace(subscription_id, resource_group, workspace_name, auth=interactive_auth)
+
+flowers_ds = Dataset.get_by_name(workspace, name="Flowers")
+flowers_ds.download(target_path=".", overwrite=False)
+
+#%% Extract files
+with ZipFile("flowers.zip", "r") as flowers_zip:
+    file_names = flowers_zip.namelist()
+    for file_name in file_names:
+        if not file_name.startswith("_"):
+            flowers_zip.extract(file_name, "./flowers")
+
 #%% Reading data and put into a dataframe
 def create_csv(path,encoded_category,category):
     img = glob.glob(path)
