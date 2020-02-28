@@ -16,7 +16,8 @@
                     {
                         "pip": [
                             "azureml-defaults",
-                            "zipfile36"
+                            "zipfile36",
+                            "opencv-python"
                         ]
                     }
                 ]
