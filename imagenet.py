@@ -9,6 +9,7 @@ import warnings
 import matplotlib.pyplot as plt
 import cv2
 import random as rn
+import os
 
 from PIL import Image
 
@@ -22,7 +23,7 @@ from keras.applications.inception_v3 import InceptionV3
 from keras.applications.inception_v3 import preprocess_input as inception_v3_preprocessor
 from keras.optimizers import Adam
 
-from azureml.core import Dataset, Workspace
+from azureml.core import Dataset, Workspace, Experiment
 from azureml.core.authentication import InteractiveLoginAuthentication
 from zipfile import ZipFile
 
@@ -36,6 +37,11 @@ from zipfile import ZipFile
 
 # flowers_ds = Dataset.get_by_name(workspace, name="Flowers")
 # flowers_ds.download(target_path=".", overwrite=True)
+
+#%% Get the Workspace
+workspace = Workspace.from_config()
+experiment = Experiment(workspace=workspace, name="train-imagenet")
+run = experiment.start_logging()
 
 #%% Extract files
 with ZipFile("flowers.zip", "r") as flowers_zip:
@@ -109,11 +115,12 @@ for layer in base_model.layers:
     layer.trainable = False 
 
 model.summary()
+
 #%% Compile the model
 model.compile(Adam(lr=.001), loss="categorical_crossentropy", metrics=["accuracy"])
 
 #%% Train the model
-history = model.fit(X_train, y_train_encoded, batch_size=32, epochs=50, validation_data=[X_test, y_test_encoded])
+history = model.fit(X_train, y_train_encoded, batch_size=32, epochs=5, validation_data=[X_test, y_test_encoded])
 
 #%% Plot History
 plt.figure(1)
@@ -126,31 +133,28 @@ plt.ylabel("Accuracy")
 plt.xlabel("Epoch")
 plt.show()
 
-#%% Visualize the prediction
+#run.log("Accuracy", history.history["accuracy"])
+#run.log("Validation", history.history["val_accuracy"])
+
+#%% Predict the test dataset
 y_prediction = model.predict(X_test)
+
+#%% Visualize the prediction
+labels = {0.0 : "daisy", 1.0 : "dandelion", 2.0 : "rose", 3.0 : "sunflower", 4.0 : "tulip"}
 figure = plt.figure(figsize=(16, 9))
-labels = images["category"].values
-
-categories = images["category"].values
-
-# fig, ax = plt.subplots(5, 2)
-# fig.set_size_inches(15, 15)
-# for i in range(5):
-#     for j in range(2):
-#         l = rn.randint(0, len(y))
-#         true_label = y_prediction[l]
-#         ax[i, j].imshow(X[l])
-#         ax[i, j].set_title("Flower: " + categories[l])
-#         print(true_label)
-
-# plt.tight_layout()
 
 for i, idx in enumerate(np.random.choice(X_test.shape[0], size=16, replace=False)):
     ax = figure.add_subplot(4, 4, i + 1, xticks=[], yticks=[])
     ax.imshow(np.squeeze(X_test[idx]))
+
     prediction_idx = np.argmax(y_prediction[idx])
-    true_idx = np.argmax(y_test[idx])
-    ax.set_title("{} ({})".format(labels[prediction_idx], labels[true_idx],
+    true_idx = y_test[idx]
+    prediction_label = labels.get(y_test[prediction_idx])
+    true_label = labels.get(true_idx)
+
+    ax.set_title("{} ({})".format(prediction_label, true_label,
     color=("green" if prediction_idx == true_idx else "red")))
 
-#%%
+#%% Save Model
+os.makedirs("./outputs/model")
+model.save("./outputs/model/flower-recognition.model")
