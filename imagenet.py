@@ -16,6 +16,7 @@ from PIL import Image
 from keras.preprocessing import image
 from keras_preprocessing.image import ImageDataGenerator, img_to_array, load_img
 from sklearn.model_selection import train_test_split
+from sklearn.utils import shuffle
 from keras.models import Sequential, Model
 from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Input, GlobalAveragePooling2D, Dropout
 from keras.applications import inception_v3
@@ -39,9 +40,9 @@ from zipfile import ZipFile
 # flowers_ds.download(target_path=".", overwrite=True)
 
 #%% Get the Workspace
-workspace = Workspace.from_config()
-experiment = Experiment(workspace=workspace, name="train-imagenet")
-run = experiment.start_logging()
+# workspace = Workspace.from_config()
+# experiment = Experiment(workspace=workspace, name="train-imagenet")
+# run = experiment.start_logging()
 
 #%% Extract files
 with ZipFile("flowers.zip", "r") as flowers_zip:
@@ -69,6 +70,7 @@ tulip = create_csv("flowers/tulip/*.jpg", 4.0, "tulip")
 
 #%% Put all images together
 images = daisy.append([dandelion, rose, sunflower, tulip], ignore_index=True)
+images = shuffle(images)
 images.head(5)
 
 #%% Build data frames
@@ -105,9 +107,9 @@ layer = base_model.output
 layer = GlobalAveragePooling2D()(layer)
 layer = Dense(1024, activation="relu")(layer)
 layer = Dropout(0.2)(layer)
-layer = Dense(1024, activation="relu")(layer)
+layer = Dense(512, activation="relu")(layer)
 layer = Dropout(0.2)(layer)
-layer = Dense(2048, activation="relu")(layer)
+layer = Dense(256, activation="relu")(layer)
 predictions = Dense(5, activation="softmax")(layer)
 
 model = Model(inputs=base_model.input, outputs=predictions)
@@ -120,7 +122,7 @@ model.summary()
 model.compile(Adam(lr=.001), loss="categorical_crossentropy", metrics=["accuracy"])
 
 #%% Train the model
-history = model.fit(X_train, y_train_encoded, batch_size=32, epochs=5, validation_data=[X_test, y_test_encoded])
+history = model.fit(X_train, y_train_encoded, batch_size=32, epochs=50, validation_data=[X_test, y_test_encoded])
 
 #%% Plot History
 plt.figure(1)
@@ -133,8 +135,8 @@ plt.ylabel("Accuracy")
 plt.xlabel("Epoch")
 plt.show()
 
-#run.log("Accuracy", history.history["accuracy"])
-#run.log("Validation", history.history["val_accuracy"])
+# run.log("Accuracy", history.history["accuracy"])
+# run.log("Validation", history.history["val_accuracy"])
 
 #%% Predict the test dataset
 y_prediction = model.predict(X_test)
@@ -145,7 +147,7 @@ figure = plt.figure(figsize=(16, 9))
 
 for i, idx in enumerate(np.random.choice(X_test.shape[0], size=16, replace=False)):
     ax = figure.add_subplot(4, 4, i + 1, xticks=[], yticks=[])
-    ax.imshow(np.squeeze(X_test[idx]))
+    ax.imshow(np.squeeze(X_train[idx]))
 
     prediction_idx = np.argmax(y_prediction[idx])
     true_idx = y_test[idx]
